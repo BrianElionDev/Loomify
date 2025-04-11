@@ -4,67 +4,28 @@ import { useLoom } from "@/context/LoomContext";
 import LoomVideoCard from "@/components/LoomVideoCard";
 import TaskModal from "@/components/TaskModal";
 import VideoStats from "@/components/VideoStats";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 
 export default function Home() {
   const { loomData, loading, error } = useLoom();
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  if (loading) {
-    return (
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-center min-h-[70vh]">
-          <div className="flex flex-col items-center">
-            <div className="w-16 h-16 relative">
-              <div className="absolute inset-0 rounded-full border-t-2 border-b-2 border-indigo-500 animate-spin"></div>
-              <div className="absolute inset-2 rounded-full border-r-2 border-l-2 border-purple-500 animate-spin animate-reverse"></div>
-            </div>
-            <p className="mt-4 text-white/70 text-sm">
-              Loading analysis data...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Filter videos based on search query
+  const filteredVideos = useMemo(() => {
+    if (!searchQuery) return loomData;
 
-  if (error) {
-    return (
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-center min-h-[70vh]">
-          <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-xl max-w-md">
-            <div className="flex items-center mb-4">
-              <div className="bg-red-500/20 p-2 rounded-full mr-3">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 text-red-500"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-red-500">
-                Error Loading Data
-              </h3>
-            </div>
-            <p className="text-red-400 text-sm mb-4">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-500 rounded-lg transition-colors text-sm font-medium"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
+    const query = searchQuery.toLowerCase();
+    return loomData.filter(
+      (video) =>
+        video.title?.toLowerCase().includes(query) ||
+        video.description?.toLowerCase().includes(query) ||
+        video.llm_answer?.developers?.some((dev) =>
+          dev.Dev.toLowerCase().includes(query)
+        )
     );
-  }
+  }, [loomData, searchQuery]);
 
   const container = {
     hidden: { opacity: 0 },
@@ -108,7 +69,11 @@ export default function Home() {
               >
                 <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
               </svg>
-              {loomData.length} Videos Analyzed
+              {loading ? (
+                <div className="h-4 w-16 bg-indigo-500/20 rounded animate-pulse" />
+              ) : (
+                `${loomData.length} Videos Analyzed`
+              )}
             </div>
             <div className="px-4 py-2 bg-purple-500/10 text-purple-300 text-sm font-medium rounded-lg flex items-center">
               <svg
@@ -119,20 +84,24 @@ export default function Home() {
               >
                 <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
               </svg>
-              {
-                new Set(
-                  loomData.flatMap(
-                    (video) =>
-                      video.llm_answer?.developers?.map((dev) => dev.Dev) || []
-                  )
-                ).size
-              }{" "}
-              Developers
+              {loading ? (
+                <div className="h-4 w-16 bg-purple-500/20 rounded animate-pulse" />
+              ) : (
+                `${
+                  new Set(
+                    loomData.flatMap(
+                      (video) =>
+                        video.llm_answer?.developers?.map((dev) => dev.Dev) ||
+                        []
+                    )
+                  ).size
+                } Developers`
+              )}
             </div>
           </div>
         </motion.div>
 
-        {loomData.length > 0 && <VideoStats video={loomData[0]} />}
+        {!loading && loomData.length > 0 && <VideoStats video={loomData[0]} />}
 
         <div>
           <motion.div
@@ -165,7 +134,7 @@ export default function Home() {
                 >
                   <path
                     fillRule="evenodd"
-                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l4.816-4.816A6 6 0 012 8z"
                     clipRule="evenodd"
                   />
                 </svg>
@@ -173,26 +142,76 @@ export default function Home() {
               <input
                 type="text"
                 placeholder="Search videos..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="py-2 pl-10 pr-4 bg-white/5 border border-white/10 rounded-lg text-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-48 sm:w-64"
               />
             </div>
           </motion.div>
 
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            variants={container}
-            initial="hidden"
-            animate="show"
-          >
-            {loomData.map((video) => (
-              <motion.div key={video.id} variants={item}>
-                <LoomVideoCard
-                  video={video}
-                  onClick={() => setSelectedVideo(video.id)}
-                />
-              </motion.div>
-            ))}
-          </motion.div>
+          {error ? (
+            <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-xl">
+              <div className="flex items-center mb-4">
+                <div className="bg-red-500/20 p-2 rounded-full mr-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6 text-red-500"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-red-500">
+                  Error Loading Data
+                </h3>
+              </div>
+              <p className="text-red-400 text-sm mb-4">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-500 rounded-lg transition-colors text-sm font-medium"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : loading ? (
+            <motion.div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              variants={container}
+              initial="hidden"
+              animate="show"
+            >
+              {[...Array(6)].map((_, i) => (
+                <motion.div key={i} variants={item}>
+                  <div className="bg-slate-800/50 rounded-xl border border-slate-700/40 p-4 animate-pulse">
+                    <div className="h-40 bg-slate-700/40 rounded-lg mb-4" />
+                    <div className="h-4 bg-slate-700/40 rounded w-3/4 mb-2" />
+                    <div className="h-4 bg-slate-700/40 rounded w-1/2" />
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : (
+            <motion.div
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              variants={container}
+              initial="hidden"
+              animate="show"
+            >
+              {filteredVideos.map((video) => (
+                <motion.div key={video.id} variants={item}>
+                  <LoomVideoCard
+                    video={video}
+                    onClick={() => setSelectedVideo(video.id)}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
         </div>
       </div>
 
