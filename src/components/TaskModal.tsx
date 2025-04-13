@@ -22,6 +22,7 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
   const notification = useNotification();
   const [activeDevTab, setActiveDevTab] = useState<string>("");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [videoHidden, setVideoHidden] = useState<boolean>(false);
   const [taskCompletionStates, setTaskCompletionStates] = useState<
     Record<string, boolean>
   >({});
@@ -47,6 +48,11 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
 
   // Set the first developer as active by default and initialize task states
   useEffect(() => {
+    // Initialize video hidden state based on screen size
+    if (typeof window !== "undefined") {
+      setVideoHidden(window.innerWidth < 1024);
+    }
+
     if (
       video?.llm_answer?.developers &&
       video.llm_answer.developers.length > 0
@@ -60,7 +66,7 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
         if (dev.Tasks) {
           dev.Tasks.forEach((task, index) => {
             const taskKey = `${dev.Dev}-${index}`;
-            initialStates[taskKey] = task.completed || false;
+            initialStates[taskKey] = task.Completed || false;
             initialTextStates[taskKey] = task.Task || "";
           });
         }
@@ -290,36 +296,36 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
               y: 20,
               transition: { duration: 0.2 },
             }}
-            className="w-full max-w-6xl h-[85vh] bg-gradient-to-b from-slate-900/95 to-slate-800/95 rounded-xl shadow-2xl border border-white/10 overflow-hidden flex flex-col"
+            className="w-full max-w-6xl h-[85vh] bg-gradient-to-b from-slate-900/95 to-slate-800/95 rounded-xl shadow-2xl border border-white/10 overflow-hidden flex flex-col touch-manipulation"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="p-5 relative flex-shrink-0 border-b border-white/10">
+            <div className="p-3 sm:p-5 relative flex-shrink-0 border-b border-white/10">
               <div className="absolute top-0 left-0 w-full h-1">
                 <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-t-xl"></div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex-shrink-0 h-10 w-10 bg-indigo-500/20 rounded-md flex items-center justify-center">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10 bg-indigo-500/20 rounded-md flex items-center justify-center">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 text-indigo-400"
+                      className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-400"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
                       <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
                     </svg>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-white mb-1 line-clamp-1">
+                  <div className="flex-grow min-w-0">
+                    <h3 className="text-base sm:text-xl font-semibold text-white mb-0.5 sm:mb-1 line-clamp-1">
                       {video.title}
                     </h3>
-                    <div className="flex items-center space-x-3 text-xs">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 text-[10px] sm:text-xs">
                       <p className="text-indigo-300 flex items-center">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className="h-3.5 w-3.5 mr-1"
+                          className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1"
                           viewBox="0 0 20 20"
                           fill="currentColor"
                         >
@@ -335,11 +341,11 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
                           day: "numeric",
                         })}
                       </p>
-                      <span className="text-white/50">•</span>
+                      <span className="text-white/50 hidden sm:inline">•</span>
                       <p className="text-white/60 flex items-center">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className="h-3.5 w-3.5 mr-1 text-indigo-400"
+                          className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 text-indigo-400"
                           viewBox="0 0 20 20"
                           fill="currentColor"
                         >
@@ -351,32 +357,32 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
                         </svg>
                         {formatDuration(video.duration)}
                       </p>
-                      <span className="text-white/50">•</span>
+                      <span className="text-white/50 hidden sm:inline">•</span>
                       <p className="text-white/60 flex items-center">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className="h-3.5 w-3.5 mr-1 text-indigo-400"
+                          className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 text-indigo-400"
                           viewBox="0 0 20 20"
                           fill="currentColor"
                         >
                           <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
                         </svg>
-                        {video.llm_answer.developers.length} developers
+                        {(video.llm_answer?.developers || []).length} devs
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center mt-2 sm:mt-0">
                   <a
                     href={video.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs font-medium rounded-lg transition-colors flex items-center"
+                    className="w-full sm:w-auto px-2.5 sm:px-3 py-1 sm:py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-[10px] sm:text-xs font-medium rounded-lg transition-colors flex items-center justify-center"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 mr-1.5"
+                      className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-1.5"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
@@ -387,11 +393,11 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
                   </a>
                   <button
                     onClick={onClose}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors"
+                    className="w-7 h-7 sm:w-8 sm:h-8 ml-2  items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors hidden sm:flex"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
+                      className="h-4 w-4 sm:h-5 sm:w-5"
                       viewBox="0 0 20 20"
                       fill="currentColor"
                     >
@@ -406,24 +412,80 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
               </div>
             </div>
 
-            <div className="flex-grow flex flex-col md:flex-row overflow-hidden">
-              {/* Video Embed Section */}
-              <div className="w-full md:w-[55%] md:h-full h-[300px] p-4 pl-5">
-                <div className="rounded-lg overflow-hidden bg-black h-full w-full shadow-lg">
-                  <iframe
-                    src={embedUrl}
-                    frameBorder="0"
-                    allowFullScreen
-                    className="w-full h-full"
-                  ></iframe>
+            <div className="flex-grow flex flex-col lg:flex-row overflow-hidden">
+              {/* Video Embed Section - Make collapsible on mobile */}
+              <div className="w-full lg:w-[55%] lg:h-full">
+                <div className="px-3 sm:px-5 py-2 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 border-b lg:border-b-0 lg:border-r border-white/10 flex items-center justify-between">
+                  <h4 className="text-sm sm:text-base font-medium text-white/80">
+                    Video Preview
+                  </h4>
+                  <button
+                    onClick={() => setVideoHidden(!videoHidden)}
+                    className="lg:hidden flex items-center gap-1 text-white/60 hover:text-white/90 text-xs sm:text-sm bg-white/5 hover:bg-white/10 px-2 py-1 rounded transition-colors"
+                  >
+                    {videoHidden ? (
+                      <>
+                        Show Video
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </>
+                    ) : (
+                      <>
+                        Hide Video
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 15l7-7 7 7"
+                          />
+                        </svg>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div
+                  className={`overflow-hidden transition-all duration-300 p-2 sm:p-4 pl-3 sm:pl-5 ${
+                    videoHidden ? "h-0 p-0" : "h-[220px] sm:h-[300px]"
+                  }`}
+                >
+                  {!videoHidden && (
+                    <div className="rounded-lg overflow-hidden bg-black h-full w-full shadow-lg">
+                      <iframe
+                        src={embedUrl}
+                        frameBorder="0"
+                        allowFullScreen
+                        className="w-full h-full"
+                        loading="lazy"
+                      ></iframe>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Task Management Section */}
-              <div className="w-full md:w-[45%] px-4 pr-5 flex flex-col pb-4">
+              <div className="w-full lg:w-[45%] px-3 sm:px-4 pr-3 sm:pr-5 flex flex-col pb-4 overflow-hidden flex-grow">
                 {/* Task Progress Stats */}
-                <div className="py-4 border-b border-white/10 mb-4">
-                  <div className="flex items-center justify-between text-sm mb-2">
+                <div className="py-3 sm:py-4 border-b border-white/10 mb-3 sm:mb-4">
+                  <div className="flex items-center justify-between text-xs sm:text-sm mb-2">
                     <div className="text-white/80 font-medium">
                       Task Progress
                     </div>
@@ -431,7 +493,7 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
                       {percentage}% Complete
                     </div>
                   </div>
-                  <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-1.5 sm:h-2 bg-white/5 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${percentage}%` }}
@@ -439,31 +501,34 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
                       className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
                     ></motion.div>
                   </div>
-                  <div className="flex justify-between text-xs text-white/50 mt-2">
+                  <div className="flex justify-between text-[10px] sm:text-xs text-white/50 mt-1.5 sm:mt-2">
                     <div>{completedTasks} completed</div>
                     <div>{totalTasks} total</div>
                   </div>
                 </div>
 
                 {/* Developer Tabs */}
-                <div className="flex space-x-1 mb-4 overflow-x-auto custom-scrollbar pb-2">
-                  {video.llm_answer.developers.map((dev) => (
+                <div
+                  className="flex space-x-1 mb-3 sm:mb-4 overflow-x-auto custom-scrollbar pb-2 scrollbar-thin"
+                  style={{ WebkitOverflowScrolling: "touch" }}
+                >
+                  {(video.llm_answer?.developers || []).map((dev) => (
                     <motion.button
                       key={dev.Dev}
                       whileHover={{ y: -2 }}
                       whileTap={{ scale: 0.98 }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap flex items-center ${
+                      className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium whitespace-nowrap flex items-center ${
                         activeDevTab === dev.Dev
                           ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
                           : "bg-white/5 text-white/70 hover:bg-white/10"
                       }`}
                       onClick={() => setActiveDevTab(dev.Dev)}
                     >
-                      <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-medium mr-2 shadow-md">
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[8px] sm:text-xs font-medium mr-1.5 sm:mr-2 shadow-md">
                         {dev.Dev.substring(0, 2).toUpperCase()}
                       </div>
                       {dev.Dev}
-                      <span className="ml-1.5 px-1.5 py-0.5 bg-white/10 rounded-full text-xs">
+                      <span className="ml-1 sm:ml-1.5 px-1 sm:px-1.5 py-0.5 bg-white/10 rounded-full text-[8px] sm:text-xs">
                         {dev.Tasks.length}
                       </span>
                     </motion.button>
@@ -471,12 +536,15 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
                 </div>
 
                 {/* Task List - Filtered by Developer */}
-                <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
-                  <div className="space-y-4 p-1 pb-2">
-                    {video.llm_answer.developers
+                <div
+                  className="flex-grow overflow-y-auto pr-2 custom-scrollbar scrollbar-thin"
+                  style={{ WebkitOverflowScrolling: "touch" }}
+                >
+                  <div className="space-y-3 sm:space-y-4 p-1 pb-2">
+                    {(video.llm_answer?.developers || [])
                       .filter((dev) => activeDevTab === dev.Dev)
                       .flatMap((dev) =>
-                        dev.Tasks.map((task, index) => {
+                        (dev.Tasks || []).map((task, index) => {
                           const taskId = `${dev.Dev}-${index}`;
                           const isCompleted = taskCompletionStates[taskId];
                           const isSelected = selectedTask === task;
@@ -496,7 +564,7 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
                                 delay: index * 0.03,
                                 boxShadow: { duration: 0.2 },
                               }}
-                              className={`bg-white/5 hover:bg-white/10 rounded-lg p-4 border border-white/5 transition-all m-1 ${
+                              className={`bg-white/5 hover:bg-white/10 rounded-lg p-2.5 sm:p-4 border border-white/5 transition-all m-1 ${
                                 isSelected ? "task-item-selected" : ""
                               }`}
                             >
@@ -661,45 +729,45 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
               </div>
             </div>
 
-            <motion.div
-              className="border-t border-white/10 p-4 flex justify-between items-center bg-black/20 flex-shrink-0"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <div className="flex items-center space-x-4">
-                <div className="text-sm text-white/60 bg-white/5 px-3 py-1.5 rounded-lg flex items-center space-x-1">
-                  <span className="font-medium text-indigo-400">
-                    {completedTasks}
+            {/* Modal Footer */}
+            <div className="p-3 sm:p-5 border-t border-white/10 flex items-center justify-between flex-shrink-0">
+              <div className="text-sm text-white/60 hidden sm:block">
+                {hasUnsavedChanges ? (
+                  <span className="text-indigo-300">
+                    You have unsaved changes
                   </span>
-                  <span className="text-white/40">/</span>
-                  <span className="text-white/60">{totalTasks}</span>
-                  <span>tasks completed</span>
-                </div>
-
-                <div className="hidden sm:flex text-sm text-white/60 bg-white/5 px-3 py-1.5 rounded-lg items-center">
-                  <span className="text-indigo-400 font-medium">
-                    {video.model}
-                  </span>
-                  <span className="ml-1">analysis</span>
-                </div>
+                ) : (
+                  "Task changes will be saved automatically"
+                )}
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white/80 text-sm font-medium rounded-lg transition-colors flex items-center"
+                  className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-white/5 hover:bg-white/10 text-white/80 text-xs sm:text-sm font-medium rounded-lg transition-colors flex items-center justify-center"
                 >
-                  <span>Cancel</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-3.5 w-3.5 mr-1.5 sm:hidden"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Close
                 </button>
                 <button
                   onClick={saveChanges}
                   disabled={!hasUnsavedChanges || taskIsSaving}
-                  className={`px-4 py-2 ${
+                  className={`flex-1 sm:flex-initial px-3 sm:px-4 py-2 ${
                     hasUnsavedChanges && !taskIsSaving
                       ? "bg-indigo-600 hover:bg-indigo-700"
                       : "bg-indigo-600/50 cursor-not-allowed"
-                  } text-white text-sm font-medium rounded-lg transition-colors flex items-center`}
+                  } text-white text-xs sm:text-sm font-medium rounded-lg transition-colors flex items-center justify-center`}
                 >
                   {taskIsSaving ? (
                     <>
@@ -739,12 +807,12 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
                           clipRule="evenodd"
                         />
                       </svg>
-                      <span>Save</span>
+                      <span>Save Changes</span>
                     </>
                   )}
                 </button>
               </div>
-            </motion.div>
+            </div>
           </motion.div>
         </motion.div>
       )}

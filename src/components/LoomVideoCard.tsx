@@ -1,8 +1,9 @@
 "use client";
 
-import { Developer, LoomAnalysis, Task } from "@/types/loom";
+import { Developer, LoomAnalysis } from "@/types/loom";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { useMemo } from "react";
 
 interface LoomVideoCardProps {
   video: LoomAnalysis;
@@ -11,18 +12,32 @@ interface LoomVideoCardProps {
 
 export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
   // Count total tasks and completed tasks
-  const totalTasks =
-    video.llm_answer?.developers?.reduce(
-      (sum: number, dev: Developer) => sum + (dev.Tasks?.length || 0),
+  const totalTasks = useMemo(() => {
+    if (
+      !video.llm_answer?.developers ||
+      !Array.isArray(video.llm_answer.developers)
+    ) {
+      return 0;
+    }
+    return video.llm_answer.developers.reduce(
+      (sum, dev) => sum + (dev.Tasks?.length || 0),
       0
-    ) || 0;
+    );
+  }, [video.llm_answer?.developers]);
 
-  const completedTasks =
-    video.llm_answer?.developers?.reduce(
-      (sum: number, dev: Developer) =>
-        sum + (dev.Tasks?.filter((task: Task) => task.completed).length || 0),
+  const completedTasks = useMemo(() => {
+    if (
+      !video.llm_answer?.developers ||
+      !Array.isArray(video.llm_answer.developers)
+    ) {
+      return 0;
+    }
+    return video.llm_answer.developers.reduce(
+      (sum, dev) =>
+        sum + ((dev.Tasks || []).filter((task) => task.Completed).length || 0),
       0
-    ) || 0;
+    );
+  }, [video.llm_answer?.developers]);
 
   const completionPercentage =
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -45,23 +60,26 @@ export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -5, scale: 1.02 }}
       transition={{ duration: 0.2 }}
-      className="bg-gradient-to-br from-slate-900/70 to-slate-800/50 backdrop-blur-md rounded-xl border border-slate-700/40 overflow-hidden cursor-pointer transition-all shadow-lg hover:shadow-xl"
-      onClick={onClick}
+      className="bg-gradient-to-br from-slate-900/70 to-slate-800/50 backdrop-blur-md rounded-xl border border-slate-700/40 overflow-hidden shadow-lg hover:shadow-xl h-full flex flex-col touch-manipulation"
     >
-      <div className="relative group">
+      <div
+        className="relative group cursor-pointer flex-shrink-0"
+        onClick={onClick}
+      >
         <Image
           src={video.thumbnail}
           alt={video.title}
           width={640}
           height={360}
           className="w-full aspect-video object-cover brightness-90 group-hover:brightness-100 transition-all"
+          priority
         />
 
-        <div className="absolute top-3 left-3">
-          <div className="flex items-center space-x-1 px-2 py-1 bg-black/70 backdrop-blur-md rounded-full text-xs text-white/90">
+        <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
+          <div className="flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/70 backdrop-blur-md rounded-full text-[10px] sm:text-xs text-white/90">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-3.5 w-3.5 text-indigo-400"
+              className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-indigo-400"
               viewBox="0 0 20 20"
               fill="currentColor"
             >
@@ -75,16 +93,34 @@ export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
           </div>
         </div>
 
+        {video.llm_answer?.project && (
+          <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
+            <div className="flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/70 backdrop-blur-md rounded-full text-[10px] sm:text-xs text-white/90 border border-slate-700/40">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-indigo-400 mr-0.5 sm:mr-1"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+              </svg>
+              <span className="truncate max-w-[100px]">
+                {video.llm_answer.project}
+              </span>
+            </div>
+          </div>
+        )}
+
         <a
           href={video.link}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="absolute bottom-3 left-3 bg-black/70 backdrop-blur-md text-white/90 text-xs px-2 py-1 rounded-lg flex items-center space-x-1 hover:bg-indigo-600/80 transition-colors"
+          className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 bg-black/70 backdrop-blur-md text-white/90 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg flex items-center space-x-1 hover:bg-indigo-600/80 transition-colors"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-3.5 w-3.5 text-indigo-400"
+            className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-indigo-400"
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -97,10 +133,10 @@ export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
           <span>Loom</span>
         </a>
 
-        <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md text-white/90 text-xs px-2 py-1 rounded-lg flex items-center space-x-1">
+        <div className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3 bg-black/70 backdrop-blur-md text-white/90 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg flex items-center space-x-1">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-3.5 w-3.5 text-indigo-400"
+            className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-indigo-400 mr-0.5 sm:mr-1"
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -114,10 +150,10 @@ export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
         </div>
 
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-b from-black/60 via-black/40 to-black/70 backdrop-blur-sm">
-          <div className="w-16 h-16 rounded-full bg-indigo-600 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-indigo-600 bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-7 w-7 text-white"
+              className="h-5 w-5 sm:h-7 sm:w-7 text-white"
               viewBox="0 0 20 20"
               fill="currentColor"
             >
@@ -131,12 +167,16 @@ export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
         </div>
       </div>
 
-      <div className="p-5">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-xs font-medium text-indigo-400/90 mb-1 flex items-center">
+      <div
+        className="p-2.5 sm:p-5 cursor-pointer flex-grow overflow-y-auto"
+        onClick={onClick}
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
+        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+          <div className="text-[10px] sm:text-xs font-medium text-indigo-400/90 flex items-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-3.5 w-3.5 mr-1"
+              className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1"
               viewBox="0 0 20 20"
               fill="currentColor"
             >
@@ -149,45 +189,76 @@ export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
             {new Date(video.date).toLocaleDateString()}
           </div>
 
-          <div className="px-2 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-300">
+          <div className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-indigo-500/10 text-indigo-300">
             {completionPercentage}% Done
           </div>
         </div>
 
-        <h3 className="text-white/90 font-semibold mb-3 line-clamp-1 text-lg">
+        <h3 className="text-white/90 font-semibold mb-1.5 sm:mb-3 line-clamp-1 text-base sm:text-lg">
           {video.title}
         </h3>
 
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-1">
-            {video.llm_answer?.developers?.map(
-              (dev: Developer, index: number) => (
+        {video.llm_answer?.project && (
+          <div className="mb-1.5 sm:mb-3 flex items-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-indigo-400 mr-1 sm:mr-1.5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+            </svg>
+            <span className="text-xs sm:text-sm text-indigo-300 font-medium truncate">
+              {video.llm_answer.project}
+            </span>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center justify-between mb-2.5 sm:mb-4 gap-y-2">
+          <div className="flex flex-wrap items-center gap-1">
+            <div className="flex items-center flex-shrink-0">
+              {(video.llm_answer?.developers || [])
+                .slice(0, 3)
+                .map((dev: Developer, index: number) => (
+                  <div
+                    key={`${video.id}-${dev.Dev}-${index}`}
+                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[10px] sm:text-xs font-medium shadow-md"
+                    style={{
+                      marginLeft: index > 0 ? "-0.5rem" : 0,
+                      zIndex: 10 - index,
+                      border: "2px solid rgba(30, 41, 59, 0.5)",
+                    }}
+                  >
+                    {dev.Dev?.substring(0, 2).toUpperCase()}
+                  </div>
+                ))}
+
+              {(video.llm_answer?.developers || []).length > 3 && (
                 <div
-                  key={`${video.id}-${dev.Dev}-${index}`}
-                  className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-medium shadow-md"
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-700/60 flex items-center justify-center text-white text-[10px] sm:text-xs font-medium shadow-md"
                   style={{
-                    marginLeft: index > 0 ? "-0.5rem" : 0,
-                    zIndex: 10 - index,
+                    marginLeft: "-0.5rem",
+                    zIndex: 1,
                     border: "2px solid rgba(30, 41, 59, 0.5)",
                   }}
                 >
-                  {dev.Dev?.substring(0, 2).toUpperCase()}
+                  +{(video.llm_answer?.developers || []).length - 3}
                 </div>
-              )
-            )}
+              )}
+            </div>
 
-            <span className="text-xs text-white/70 ml-1 font-medium">
-              {video.llm_answer?.developers?.length || 0}{" "}
-              {(video.llm_answer?.developers?.length || 0) === 1
+            <span className="text-[10px] sm:text-xs text-white/70 ml-1 font-medium">
+              {(video.llm_answer?.developers || []).length || 0}{" "}
+              {((video.llm_answer?.developers || []).length || 0) === 1
                 ? "developer"
                 : "developers"}
             </span>
           </div>
 
-          <span className="text-xs text-white/70 font-medium flex items-center">
+          <span className="text-[10px] sm:text-xs text-white/70 font-medium flex items-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-3.5 w-3.5 mr-1 text-indigo-400"
+              className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 text-indigo-400"
               viewBox="0 0 20 20"
               fill="currentColor"
             >
@@ -203,7 +274,7 @@ export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
         </div>
 
         <div className="flex items-center space-x-2">
-          <div className="h-2 bg-slate-700/50 rounded-full flex-1 overflow-hidden">
+          <div className="h-1.5 sm:h-2 bg-slate-700/50 rounded-full flex-1 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
               style={{ width: `${completionPercentage}%` }}
