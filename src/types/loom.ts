@@ -1,7 +1,7 @@
 export interface Task {
   Task: string;
   Timestamp: string;
-  completed: boolean;
+  Completed: boolean;
   Dev?: string;
   index?: number;
 }
@@ -16,6 +16,7 @@ export interface LoomAnalysis {
   transcript: string;
   title: string;
   llm_answer: {
+    project: string;
     developers: Developer[];
   };
   created_at: string;

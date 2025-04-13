@@ -16,8 +16,10 @@ export async function POST(req: NextRequest) {
     // Get the Loom URL from the request body
     const body = await req.json();
     const loomUrl = body.loom_url;
+    const project = body.project || null;
 
     console.log("Proxying request for Loom URL:", loomUrl);
+    console.log("Project:", project);
     console.log("Request body:", JSON.stringify(body, null, 2));
 
     // Validate the loomUrl
@@ -34,9 +36,15 @@ export async function POST(req: NextRequest) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
+      // Prepare request payload with project if provided
+      const requestPayload = {
+        loom_url: loomUrl,
+        ...(project && { project: project }),
+      };
+
       console.log(
         "Sending request to external API with body:",
-        JSON.stringify({ loom_url: loomUrl })
+        JSON.stringify(requestPayload)
       );
 
       // Using Next.js API to avoid potential issues with CORS or TLS
@@ -49,9 +57,7 @@ export async function POST(req: NextRequest) {
           Accept: "application/json",
           "User-Agent": "Mozilla/5.0 Loomify-NextJS-Proxy",
         },
-        body: JSON.stringify({
-          loom_url: loomUrl,
-        }),
+        body: JSON.stringify(requestPayload),
         signal: controller.signal,
         // For development - disable certificate verification if needed
         ...(process.env.NODE_ENV === "development" ? { agent: null } : {}),

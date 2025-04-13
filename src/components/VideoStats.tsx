@@ -8,14 +8,14 @@ interface VideoStatsProps {
 export default function VideoStats({ video }: VideoStatsProps) {
   if (!video) return null;
 
-  const totalTasks = video.llm_answer.developers.reduce(
-    (sum, dev) => sum + dev.Tasks.length,
+  const totalTasks = (video.llm_answer?.developers || []).reduce(
+    (sum, dev) => sum + (dev.Tasks?.length || 0),
     0
   );
 
-  const completedTasks = video.llm_answer.developers.reduce(
+  const completedTasks = (video.llm_answer?.developers || []).reduce(
     (sum, dev) =>
-      sum + (dev.Tasks.filter((task) => task.completed).length || 0),
+      sum + ((dev.Tasks || []).filter((task) => task.Completed).length || 0),
     0
   );
 
@@ -23,7 +23,7 @@ export default function VideoStats({ video }: VideoStatsProps) {
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const uniqueDevelopers = new Set(
-    video.llm_answer.developers.map((dev) => dev.Dev)
+    (video.llm_answer?.developers || []).map((dev) => dev.Dev)
   ).size;
 
   const formattedDuration =
