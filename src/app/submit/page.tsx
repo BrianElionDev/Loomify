@@ -118,7 +118,7 @@ export default function SubmitPage() {
 
   // Get the selected project object
   const selectedProject =
-    projects.find((p) => p.id.toString() === project.toString()) || projects[0];
+    projects.find((p) => p.name === project) || projects[0];
 
   // Handle redirect after success
   useEffect(() => {
@@ -295,7 +295,7 @@ export default function SubmitPage() {
                 {projects.map((proj) => (
                   <option
                     key={proj.id}
-                    value={proj.id}
+                    value={proj.name}
                     className="bg-slate-800 font-medium"
                   >
                     {proj.name}
