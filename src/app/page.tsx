@@ -21,7 +21,7 @@ export default function Home() {
     const projectSet = new Set<string>();
     loomData.forEach((video) => {
       if (video?.project) {
-        projectSet.add(video.project);
+        projectSet.add(video.project.toLowerCase());
       }
     });
 
@@ -36,7 +36,10 @@ export default function Home() {
 
     // Filter by project if one is selected
     if (selectedProject) {
-      filtered = filtered.filter((video) => video?.project === selectedProject);
+      filtered = filtered.filter(
+        (video) =>
+          video?.project?.toLowerCase() === selectedProject.toLowerCase()
+      );
     }
 
     // Filter by search query if one exists

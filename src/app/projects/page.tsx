@@ -29,11 +29,11 @@ export default function ProjectsPage() {
       // Skip videos without proper project data
       if (!video?.project) return;
 
-      const projectName = video.project;
+      const projectName = video.project.toLowerCase();
 
       if (!projectMap.has(projectName)) {
         projectMap.set(projectName, {
-          name: projectName,
+          name: video.project,
           videos: [],
         });
       }

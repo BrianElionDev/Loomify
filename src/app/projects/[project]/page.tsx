@@ -20,7 +20,9 @@ export default function ProjectPage() {
     if (!loomData || !Array.isArray(loomData)) {
       return [];
     }
-    return loomData.filter((video) => video?.project === projectName);
+    return loomData.filter(
+      (video) => video?.project?.toLowerCase() === projectName.toLowerCase()
+    );
   }, [loomData, projectName]);
 
   // Calculate project stats
