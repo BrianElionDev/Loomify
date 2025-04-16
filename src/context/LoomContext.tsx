@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import React from "react";
 import { LoomAnalysis, Developer } from "@/types/loom";
 import { supabase } from "@/lib/supabase";
@@ -47,21 +47,6 @@ const fetchLoomData = async (): Promise<LoomAnalysis[]> => {
   return data || [];
 };
 
-// Fetch a single Loom video by ID
-const fetchLoomVideo = async (id: string): Promise<LoomAnalysis> => {
-  const { data, error } = await supabase
-    .from("loom_analysis")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (error) {
-    throw new Error(`Failed to fetch video: ${error.message}`);
-  }
-
-  return data;
-};
-
 // Update task completion and text
 const updateLoomVideo = async ({
   videoId,
@@ -76,56 +61,47 @@ const updateLoomVideo = async ({
   }[];
   taskTextUpdates: { devName: string; taskIndex: number; text: string }[];
 }): Promise<LoomAnalysis> => {
-  // First get the current video data
-  const videoData = await fetchLoomVideo(videoId);
+  // Get current video data
+  const { data: currentVideo, error: fetchError } = await supabase
+    .from("loom_analysis")
+    .select("*")
+    .eq("id", videoId)
+    .single();
 
-  // Make a deep copy of the video data to modify
-  const updatedVideo = JSON.parse(JSON.stringify(videoData));
+  if (fetchError) throw fetchError;
 
-  // Apply all completion status updates
+  // Create a deep copy of the developers array
+  const updatedDevelopers = JSON.parse(
+    JSON.stringify(currentVideo.llm_answer.developers)
+  );
+
+  // Update task completion status
   taskCompletionUpdates.forEach(({ devName, taskIndex, completed }) => {
-    const devIndex = updatedVideo.llm_answer.developers.findIndex(
-      (dev: Developer) => dev.Dev === devName
-    );
-
-    if (
-      devIndex !== -1 &&
-      updatedVideo.llm_answer.developers[devIndex].Tasks &&
-      updatedVideo.llm_answer.developers[devIndex].Tasks[taskIndex]
-    ) {
-      updatedVideo.llm_answer.developers[devIndex].Tasks[taskIndex].completed =
-        completed;
+    const dev = updatedDevelopers.find((d: Developer) => d.Dev === devName);
+    if (dev && dev.Tasks && dev.Tasks[taskIndex]) {
+      dev.Tasks[taskIndex].Completed = completed;
     }
   });
 
-  // Apply all task text updates
+  // Update task text
   taskTextUpdates.forEach(({ devName, taskIndex, text }) => {
-    const devIndex = updatedVideo.llm_answer.developers.findIndex(
-      (dev: Developer) => dev.Dev === devName
-    );
-
-    if (
-      devIndex !== -1 &&
-      updatedVideo.llm_answer.developers[devIndex].Tasks &&
-      updatedVideo.llm_answer.developers[devIndex].Tasks[taskIndex]
-    ) {
-      updatedVideo.llm_answer.developers[devIndex].Tasks[taskIndex].Task = text;
+    const dev = updatedDevelopers.find((d: Developer) => d.Dev === devName);
+    if (dev && dev.Tasks && dev.Tasks[taskIndex]) {
+      dev.Tasks[taskIndex].Task = text;
     }
   });
 
   // Update in Supabase
   const { data, error: updateError } = await supabase
     .from("loom_analysis")
-    .update({ llm_answer: updatedVideo.llm_answer })
+    .update({
+      llm_answer: { ...currentVideo.llm_answer, developers: updatedDevelopers },
+    })
     .eq("id", videoId)
     .select()
     .single();
 
-  if (updateError) {
-    console.error("Error updating tasks:", updateError);
-    throw new Error(`Failed to update video: ${updateError.message}`);
-  }
-
+  if (updateError) throw updateError;
   return data;
 };
 
@@ -138,24 +114,36 @@ export function LoomProvider({ children }: { children: React.ReactNode }) {
     data: loomData = [],
     isLoading: loading,
     error: queryError,
-    refetch,
   } = useQuery({
     queryKey: [QUERY_KEYS.loomData],
     queryFn: fetchLoomData,
   });
 
   // Extract error message
-  const error = queryError
+  const queryErrorMsg = queryError
     ? queryError instanceof Error
       ? queryError.message
       : "An error occurred"
     : null;
 
+  // Function to manually refresh data
+  const refreshData = async () => {
+    try {
+      const timeoutPromise = new Promise<LoomAnalysis[]>((_, reject) => {
+        setTimeout(() => reject(new Error("Refresh timeout")), 5000);
+      });
+
+      await Promise.race<LoomAnalysis[]>([fetchLoomData(), timeoutPromise]);
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+    }
+  };
+
   // Mutation for updating task completion status
   const { mutateAsync: updateTask } = useMutation({
     mutationFn: updateLoomVideo,
     onSuccess: (updatedVideo) => {
-      // Optimistically update the video in the cached data
+      // Update cache
       queryClient.setQueryData(
         [QUERY_KEYS.loomData],
         (oldData: LoomAnalysis[] | undefined) => {
@@ -165,25 +153,10 @@ export function LoomProvider({ children }: { children: React.ReactNode }) {
           );
         }
       );
-
-      // Also update the individual video query if it exists
-      queryClient.setQueryData(
-        QUERY_KEYS.loomVideo(updatedVideo.id),
-        updatedVideo
-      );
+      // Refetch in background
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.loomData] });
     },
   });
-
-  // Function to manually refresh data
-  const refreshData = async () => {
-    try {
-      setTaskIsSaving(true);
-      await refetch();
-    } catch (error) {
-      console.error("Error refreshing data:", error);
-      setTaskIsSaving(false);
-    }
-  };
 
   // Function to update task completion status
   const updateTaskCompletionStatus = async (
@@ -197,28 +170,33 @@ export function LoomProvider({ children }: { children: React.ReactNode }) {
   ): Promise<boolean> => {
     try {
       setTaskIsSaving(true);
-
       await updateTask({
         videoId,
         taskCompletionUpdates,
         taskTextUpdates,
       });
-
-      return true;
-    } catch (err) {
-      console.error("Error updating tasks:", err);
-      return false;
-    } finally {
       setTaskIsSaving(false);
+      return true;
+    } catch (error) {
+      console.error("Error updating task completion status:", error);
+      setTaskIsSaving(false);
+      return false;
     }
   };
+
+  // Add a cleanup effect to ensure taskIsSaving is reset
+  useEffect(() => {
+    return () => {
+      setTaskIsSaving(false);
+    };
+  }, []);
 
   return (
     <LoomContext.Provider
       value={{
         loomData,
         loading,
-        error,
+        error: queryErrorMsg,
         refreshData,
         updateTaskCompletionStatus,
         taskIsSaving,
