@@ -464,7 +464,9 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
                 </div>
                 <div
                   className={`overflow-hidden transition-all duration-300 p-2 sm:p-4 pl-3 sm:pl-5 ${
-                    videoHidden ? "h-0 p-0" : "h-[220px] sm:h-[300px]"
+                    videoHidden
+                      ? "h-0 p-0"
+                      : "h-[220px] sm:h-[300px] md:h-[400px] lg:h-[500px]"
                   }`}
                 >
                   {!videoHidden && (

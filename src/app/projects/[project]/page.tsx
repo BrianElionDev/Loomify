@@ -20,9 +20,7 @@ export default function ProjectPage() {
     if (!loomData || !Array.isArray(loomData)) {
       return [];
     }
-    return loomData.filter(
-      (video) => video?.llm_answer?.project === projectName
-    );
+    return loomData.filter((video) => video?.project === projectName);
   }, [loomData, projectName]);
 
   // Calculate project stats
@@ -33,7 +31,8 @@ export default function ProjectPage() {
 
     projectVideos.forEach((video) => {
       if (
-        !video?.llm_answer?.developers ||
+        !video?.llm_answer ||
+        !video.llm_answer.developers ||
         !Array.isArray(video.llm_answer.developers)
       ) {
         return;

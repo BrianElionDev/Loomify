@@ -24,6 +24,7 @@ export interface LoomAnalysis {
   id: string;
   model: string;
   link: string;
+  project: string;
   description: string;
   duration: string;
   thumbnail: string;
