@@ -27,13 +27,13 @@ export default function ProjectsPage() {
 
     loomData.forEach((video) => {
       // Skip videos without proper project data
-      if (!video?.llm_answer?.project) return;
+      if (!video?.project) return;
 
-      const projectName = video.llm_answer.project;
+      const projectName = video.project.toLowerCase();
 
       if (!projectMap.has(projectName)) {
         projectMap.set(projectName, {
-          name: projectName,
+          name: video.project,
           videos: [],
         });
       }

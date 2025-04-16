@@ -93,7 +93,7 @@ export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
           </div>
         </div>
 
-        {video.llm_answer?.project && (
+        {video.project && (
           <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
             <div className="flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/70 backdrop-blur-md rounded-full text-[10px] sm:text-xs text-white/90 border border-slate-700/40">
               <svg
@@ -104,9 +104,7 @@ export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
               >
                 <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
               </svg>
-              <span className="truncate max-w-[100px]">
-                {video.llm_answer.project}
-              </span>
+              <span className="truncate max-w-[100px]">{video.project}</span>
             </div>
           </div>
         )}
@@ -198,7 +196,7 @@ export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
           {video.title}
         </h3>
 
-        {video.llm_answer?.project && (
+        {video.project && (
           <div className="mb-1.5 sm:mb-3 flex items-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -209,7 +207,7 @@ export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
               <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
             </svg>
             <span className="text-xs sm:text-sm text-indigo-300 font-medium truncate">
-              {video.llm_answer.project}
+              {video.project}
             </span>
           </div>
         )}

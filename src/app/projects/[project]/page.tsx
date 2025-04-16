@@ -21,7 +21,7 @@ export default function ProjectPage() {
       return [];
     }
     return loomData.filter(
-      (video) => video?.llm_answer?.project === projectName
+      (video) => video?.project?.toLowerCase() === projectName.toLowerCase()
     );
   }, [loomData, projectName]);
 
@@ -33,7 +33,8 @@ export default function ProjectPage() {
 
     projectVideos.forEach((video) => {
       if (
-        !video?.llm_answer?.developers ||
+        !video?.llm_answer ||
+        !video.llm_answer.developers ||
         !Array.isArray(video.llm_answer.developers)
       ) {
         return;
