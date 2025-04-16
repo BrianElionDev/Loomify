@@ -18,7 +18,7 @@ interface TaskModalProps {
 }
 
 export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
-  const { updateTaskCompletionStatus, taskIsSaving } = useLoom();
+  const { updateTaskCompletionStatus, taskIsSaving, refreshData } = useLoom();
   const notification = useNotification();
   const [activeDevTab, setActiveDevTab] = useState<string>("");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -134,6 +134,13 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
     taskText: string
   ) => {
     const taskId = `${devName}-${taskIndex}`;
+    setSelectedTask({
+      Task: taskText,
+      Dev: devName,
+      index: taskIndex,
+      Timestamp: "",
+      Completed: false,
+    });
     setTaskTextStates((prev) => ({
       ...prev,
       [taskId]: taskText,
@@ -142,14 +149,11 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
 
   // Save task text edit
   const saveTaskTextEdit = () => {
-    if (
-      selectedTask &&
-      taskTextStates[`${selectedTask.Dev}-${selectedTask.index}`] !==
-        selectedTask.Task
-    ) {
+    if (selectedTask) {
+      const taskId = `${selectedTask.Dev}-${selectedTask.index}`;
       setTaskTextStates((prev) => ({
         ...prev,
-        [`${selectedTask.Dev}-${selectedTask.index}`]: selectedTask.Task,
+        [taskId]: selectedTask.Task,
       }));
       setSelectedTask(null);
     }
@@ -157,7 +161,14 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
 
   // Cancel task text edit
   const cancelTaskTextEdit = () => {
-    setSelectedTask(null);
+    if (selectedTask) {
+      const taskId = `${selectedTask.Dev}-${selectedTask.index}`;
+      setTaskTextStates((prev) => ({
+        ...prev,
+        [taskId]: initialTaskTextStates[taskId],
+      }));
+      setSelectedTask(null);
+    }
   };
 
   // Save changes to Supabase
@@ -202,6 +213,9 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
         setInitialTaskTextStates({ ...taskTextStates });
         setHasUnsavedChanges(false);
         notification.success("Tasks updated successfully!");
+        
+        // Don't wait for refresh, just trigger it
+        refreshData().catch(console.error);
       } else {
         notification.error("Failed to update tasks, please try again.");
       }
@@ -218,7 +232,6 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
       Object.values(taskCompletionStates).filter(Boolean).length;
     const percentage =
       totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-
     return { totalTasks, completedTasks, percentage };
   };
 
@@ -258,6 +271,19 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
     return () => {
       document.head.removeChild(style);
     };
+  }, []);
+
+  // Add error handling for Loom embed
+  useEffect(() => {
+    const handleLoomError = (event: ErrorEvent) => {
+      if (event.message.includes("loom.com")) {
+        console.warn("Loom embed script failed to load, this is non-critical");
+        // Don't show error to user since it's non-critical
+      }
+    };
+
+    window.addEventListener("error", handleLoomError);
+    return () => window.removeEventListener("error", handleLoomError);
   }, []);
 
   return (
@@ -573,9 +599,10 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
                               <div className="flex">
                                 <div
                                   className="w-5 h-5 mt-0.5 mr-3 rounded-md border border-white/20 flex-shrink-0 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors"
-                                  onClick={() =>
-                                    toggleTaskCompletion(dev.Dev, index)
-                                  }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleTaskCompletion(dev.Dev, index);
+                                  }}
                                 >
                                   {isCompleted && (
                                     <svg
@@ -600,13 +627,15 @@ export default function TaskModal({ video, isOpen, onClose }: TaskModalProps) {
                                     <div className="flex flex-col space-y-2">
                                       <input
                                         type="text"
-                                        value={selectedTask.Task}
-                                        onChange={(e) =>
-                                          setTaskTextStates((prev) => ({
-                                            ...prev,
-                                            [taskId]: e.target.value,
-                                          }))
-                                        }
+                                        value={selectedTask?.Task || ""}
+                                        onChange={(e) => {
+                                          if (selectedTask) {
+                                            setSelectedTask({
+                                              ...selectedTask,
+                                              Task: e.target.value,
+                                            });
+                                          }
+                                        }}
                                         className="w-full bg-white/10 text-white/90 px-3 py-1.5 rounded border border-white/20 focus:border-indigo-500 focus:outline-none text-sm"
                                         autoFocus
                                         onKeyDown={(e) => {
