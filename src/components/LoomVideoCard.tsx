@@ -42,16 +42,23 @@ export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
   const completionPercentage =
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  // Format duration from ms to min:sec
+  // Format duration from seconds to min:sec (MM:SS)
   const formatDuration = (duration: number | string): string => {
-    if (typeof duration === "string") return duration;
+    // Convert to number if it's a string
+    const seconds =
+      typeof duration === "string" ? parseFloat(duration) : duration;
 
-    // If duration is in milliseconds, convert to seconds first
-    const totalSeconds =
-      duration > 1000 ? Math.floor(duration / 1000) : duration;
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = Math.floor(totalSeconds % 60);
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    // If parsing failed, return original string
+    if (isNaN(seconds)) {
+      return String(duration);
+    }
+
+    // Calculate minutes and seconds
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+
+    // Format as MM:SS
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
   return (

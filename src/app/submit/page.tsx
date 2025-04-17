@@ -8,25 +8,18 @@ import { useNotification } from "@/hooks/useNotification";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, FolderKanban } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 // Submit Loom URL to microservice API
-const submitLoomUrl = async ({
-  loomUrl,
-  project,
-}: {
-  loomUrl: string;
-  project: string;
-}) => {
+const submitLoomUrl = async ({ loomUrl }: { loomUrl: string }) => {
   try {
-    console.log("Submitting URL:", loomUrl, "Project:", project);
+    console.log("Submitting URL:", loomUrl);
 
     // Use our proxy API route to avoid CORS issues
     const response = await axios.post(
       "/api/loom-proxy",
       {
         loom_url: loomUrl,
-        project: project,
       },
       {
         headers: {
@@ -79,46 +72,9 @@ export default function SubmitPage() {
   const router = useRouter();
   const { refreshData } = useLoom();
   const [loomUrl, setLoomUrl] = useState("");
-  const [project, setProject] = useState("CryptoLens");
   const [redirecting, setRedirecting] = useState(false);
   const queryClient = useQueryClient();
   const notification = useNotification();
-
-  // Projects available for selection as JSON
-  const projects = [
-    { id: 1, name: "CryptoLens", color: "indigo" },
-    { id: 2, name: "Agent Based Market Analysis", color: "purple" },
-    { id: 3, name: "Internal Tools", color: "blue" },
-  ];
-
-  // Get color class for project
-  const getProjectColorClass = (colorName: string) => {
-    const colorMap: Record<string, string> = {
-      indigo: "text-indigo-300",
-      purple: "text-purple-300",
-      blue: "text-blue-300",
-    };
-    return colorMap[colorName] || "text-white/80";
-  };
-
-  // Get background color class for project
-  const getProjectBgClass = (colorName: string) => {
-    const bgMap: Record<string, string> = {
-      indigo:
-        "bg-indigo-900/40 border-indigo-500/40 hover:border-indigo-500/60 focus:ring-indigo-500",
-      purple:
-        "bg-purple-900/40 border-purple-500/40 hover:border-purple-500/60 focus:ring-purple-500",
-      blue: "bg-blue-900/40 border-blue-500/40 hover:border-blue-500/60 focus:ring-blue-500",
-    };
-    return (
-      bgMap[colorName] ||
-      "bg-white/5 border-white/10 hover:border-white/20 focus:ring-white/30"
-    );
-  };
-
-  // Get the selected project object
-  const selectedProject =
-    projects.find((p) => p.name === project) || projects[0];
 
   // Handle redirect after success
   useEffect(() => {
@@ -175,7 +131,7 @@ export default function SubmitPage() {
     }
 
     // Submit with React Query
-    mutate({ loomUrl, project });
+    mutate({ loomUrl });
   };
 
   return (
@@ -263,68 +219,6 @@ export default function SubmitPage() {
                 </span>
                 )
               </span>
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="project"
-              className="block text-sm font-medium text-white/80 mb-2"
-            >
-              Project
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FolderKanban
-                  className={`h-5 w-5 ${getProjectColorClass(
-                    selectedProject.color
-                  )}`}
-                />
-              </div>
-              <select
-                id="project"
-                name="project"
-                value={project}
-                onChange={(e) => setProject(e.target.value)}
-                className={`py-3 pl-10 pr-4 ${getProjectBgClass(
-                  selectedProject.color
-                )} border-2 rounded-lg ${getProjectColorClass(
-                  selectedProject.color
-                )} text-sm sm:text-base font-medium focus:outline-none focus:ring-2 focus:border-transparent w-full appearance-none backdrop-blur-sm shadow-lg`}
-              >
-                {projects.map((proj) => (
-                  <option
-                    key={proj.id}
-                    value={proj.name}
-                    className="bg-slate-800 font-medium"
-                  >
-                    {proj.name}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className={`h-5 w-5 ${getProjectColorClass(
-                    selectedProject.color
-                  )}`}
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-            </div>
-            <p
-              className={`mt-2 text-sm ${getProjectColorClass(
-                selectedProject.color
-              ).replace("300", "400/70")}`}
-            >
-              Select the project this Loom video is associated with
             </p>
           </div>
 
