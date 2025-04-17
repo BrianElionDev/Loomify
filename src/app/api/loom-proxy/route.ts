@@ -16,10 +16,8 @@ export async function POST(req: NextRequest) {
     // Get the Loom URL from the request body
     const body = await req.json();
     const loomUrl = body.loom_url;
-    const project = body.project || null;
 
     console.log("Proxying request for Loom URL:", loomUrl);
-    console.log("Project:", project);
     console.log("Request body:", JSON.stringify(body, null, 2));
 
     // Validate the loomUrl
@@ -36,10 +34,9 @@ export async function POST(req: NextRequest) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-      // Prepare request payload with project if provided
+      // Prepare request payload
       const requestPayload = {
         loom_url: loomUrl,
-        ...(project && { project: project }),
       };
 
       console.log(

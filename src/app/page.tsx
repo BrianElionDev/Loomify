@@ -116,9 +116,7 @@ export default function Home() {
           </div>
         </motion.div>
 
-        {!loading && loomData && loomData.length > 0 && (
-          <VideoStats video={loomData[0]} />
-        )}
+        <VideoStats videos={loomData} isLoading={loading} />
 
         <div>
           <motion.div
