@@ -18,6 +18,7 @@ export default function Header() {
     { path: "/", label: "Dashboard" },
     { path: "/projects", label: "Projects" },
     { path: "/submit", label: "Submit Video" },
+    { path: "/summaries", label: "Summaries" },
     {
       path: "https://github.com/BrianElionDev/Loomify",
       label: "GitHub",
