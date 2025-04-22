@@ -308,8 +308,7 @@ export default function SubmitPage() {
             <div>
               <h4 className="text-white/90 font-medium">Paste your Loom URL</h4>
               <p className="text-white/60 text-sm">
-                Paste the share URL of your Loom video above and select the
-                project this Loom video is associated with.
+                Paste the share URL of your Loom video above.
               </p>
             </div>
           </div>
