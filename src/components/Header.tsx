@@ -17,6 +17,7 @@ export default function Header() {
   const links = [
     { path: "/", label: "Dashboard" },
     { path: "/projects", label: "Projects" },
+    { path: "/developers", label: "Developers" },
     { path: "/submit", label: "Submit Video" },
     { path: "/summaries", label: "Summaries" },
     {

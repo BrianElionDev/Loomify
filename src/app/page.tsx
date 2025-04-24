@@ -6,7 +6,15 @@ import TaskModal from "@/components/TaskModal";
 import VideoStats from "@/components/VideoStats";
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, Video, Users, FolderKanban, Filter } from "lucide-react";
+import {
+  Search,
+  Video,
+  Users,
+  FolderKanban,
+  Filter,
+  UserCircle2,
+} from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   const { loomData, loading, error } = useLoom();
@@ -117,6 +125,138 @@ export default function Home() {
         </motion.div>
 
         <VideoStats videos={loomData} isLoading={loading} />
+
+        {/* Developers section */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-gradient-to-r from-slate-900 to-slate-800/80 p-4 sm:p-6 rounded-xl border border-slate-700/40 shadow-lg"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+            <div className="flex items-center">
+              <div className="h-8 w-8 bg-purple-500/20 rounded-md flex items-center justify-center mr-3">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
+              </div>
+              <h3 className="text-lg sm:text-xl font-semibold text-white/90">
+                Developers
+              </h3>
+            </div>
+            <Link
+              href="/developers"
+              className="inline-flex items-center px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 text-xs sm:text-sm font-medium rounded-lg transition-colors"
+            >
+              View All Developers
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 ml-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-slate-800/50 rounded-lg border border-slate-700/30 p-3 animate-pulse"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-6 w-6 bg-purple-500/20 rounded-full" />
+                    <div className="h-4 bg-slate-700/50 w-24 rounded" />
+                  </div>
+                  <div className="h-2 bg-slate-700/30 rounded-full mb-2" />
+                  <div className="flex justify-between mb-1">
+                    <div className="h-3 bg-slate-700/40 w-16 rounded" />
+                    <div className="h-3 bg-slate-700/40 w-10 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="text-center py-4 text-white/60">
+              Unable to load developer data
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {Array.from(
+                new Set(
+                  loomData.flatMap((video) =>
+                    (video.llm_answer?.developers || []).map((dev) => dev.Dev)
+                  )
+                )
+              )
+                .filter(Boolean)
+                .sort()
+                .slice(0, 4)
+                .map((devName, index) => {
+                  // Calculate stats for this developer
+                  const tasks = [];
+                  let completedTasks = 0;
+
+                  for (const video of loomData) {
+                    if (!video.llm_answer?.developers) continue;
+
+                    const dev = video.llm_answer.developers.find(
+                      (d) => d.Dev === devName
+                    );
+                    if (dev && dev.Tasks) {
+                      tasks.push(...dev.Tasks);
+                      completedTasks += dev.Tasks.filter(
+                        (t) => t.Completed
+                      ).length;
+                    }
+                  }
+
+                  const completionRate =
+                    tasks.length > 0
+                      ? Math.round((completedTasks / tasks.length) * 100)
+                      : 0;
+
+                  return (
+                    <Link
+                      key={index}
+                      href={`/developers/${encodeURIComponent(devName)}`}
+                      className="bg-white/5 hover:bg-white/10 rounded-lg border border-slate-700/30 p-3 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-6 w-6 bg-purple-500/20 rounded-full flex items-center justify-center">
+                          <UserCircle2 className="h-3.5 w-3.5 text-purple-400" />
+                        </div>
+                        <div className="font-medium text-white/90 truncate">
+                          {devName}
+                        </div>
+                      </div>
+                      <div className="h-1.5 bg-white/10 rounded-full mb-2">
+                        <div
+                          className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"
+                          style={{ width: `${completionRate}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <div className="text-white/60">
+                          {tasks.length} tasks
+                        </div>
+                        <div className="text-purple-300">
+                          {completionRate}% complete
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+            </div>
+          )}
+        </motion.div>
 
         <div>
           <motion.div
