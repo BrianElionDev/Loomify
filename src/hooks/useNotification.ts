@@ -23,7 +23,15 @@ export function useNotification() {
   };
 
   const info = (message: string, options?: NotificationOptions) => {
-    toast(message, options);
+    toast(message, {
+      ...options,
+      style: {
+        background: "rgba(59, 130, 246, 0.2)",
+        borderLeft: "3px solid #3b82f6",
+        color: "white",
+      },
+      icon: "ℹ️",
+    });
   };
 
   const loading = <T>(

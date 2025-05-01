@@ -25,6 +25,7 @@ export interface LoomAnalysis {
   model: string;
   link: string;
   usage: number;
+  recording_type: string;
   project: string;
   description: string;
   duration: string;
