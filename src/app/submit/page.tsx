@@ -11,15 +11,22 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 // Submit Loom URL to microservice API
-const submitLoomUrl = async ({ loomUrl }: { loomUrl: string }) => {
+const submitLoomUrl = async ({
+  loomUrl,
+  recordingType,
+}: {
+  loomUrl: string;
+  recordingType: string;
+}) => {
   try {
-    console.log("Submitting URL:", loomUrl);
+    console.log(`Submitting Loom URL (${recordingType})`);
 
     // Use our proxy API route to avoid CORS issues
     const response = await axios.post(
       "/api/loom-proxy",
       {
         loom_url: loomUrl,
+        recording_type: recordingType,
       },
       {
         headers: {
@@ -30,7 +37,10 @@ const submitLoomUrl = async ({ loomUrl }: { loomUrl: string }) => {
       }
     );
 
-    console.log("API Response:", response.data);
+    // Only log the status for successful responses
+    console.log(
+      `API Response: ${response.status} - ${response.data.status || "success"}`
+    );
 
     // Check if the response is actually an error (API might return 200 but with error inside)
     if (response.data.error) {
@@ -72,6 +82,7 @@ export default function SubmitPage() {
   const router = useRouter();
   const { refreshData } = useLoom();
   const [loomUrl, setLoomUrl] = useState("");
+  const [recordingType, setRecordingType] = useState("meeting");
   const [redirecting, setRedirecting] = useState(false);
   const queryClient = useQueryClient();
   const notification = useNotification();
@@ -92,7 +103,25 @@ export default function SubmitPage() {
   const { mutate, isPending: isSubmitting } = useMutation({
     mutationFn: submitLoomUrl,
     onSuccess: (data) => {
-      console.log("Submission successful:", data);
+      console.log(`Submission successful: ${data.status || "complete"}`);
+
+      // Check if the response indicates background processing
+      if (data.status === "processing") {
+        notification.info(
+          data.message ||
+            "Your Loom video is being processed in the background. Check back soon for results."
+        );
+        setLoomUrl("");
+
+        // Don't redirect immediately for background processing
+        setTimeout(() => {
+          refreshData();
+          queryClient.invalidateQueries({ queryKey: ["loom-data"] });
+          setRedirecting(true);
+        }, 1500);
+
+        return;
+      }
 
       notification.success(
         "Loom video has been successfully submitted for analysis!"
@@ -131,7 +160,7 @@ export default function SubmitPage() {
     }
 
     // Submit with React Query
-    mutate({ loomUrl });
+    mutate({ loomUrl, recordingType });
   };
 
   return (
@@ -180,6 +209,34 @@ export default function SubmitPage() {
           </div>
         </div>
 
+        {/* Background Processing Notice */}
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6">
+          <div className="flex items-start">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 text-blue-400 mr-3 mt-0.5 flex-shrink-0"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div>
+              <h4 className="text-blue-300 font-medium text-sm mb-1">
+                Processing Time
+              </h4>
+              <p className="text-white/70 text-sm">
+                Loom video analysis happens in the background and may take a few
+                minutes. You&apos;ll be redirected to the dashboard, but check
+                back later to see your completed analysis.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label
@@ -222,55 +279,85 @@ export default function SubmitPage() {
             </p>
           </div>
 
+          <div>
+            <label
+              htmlFor="recordingType"
+              className="block text-sm font-medium text-white/80 mb-2"
+            >
+              Recording Type
+            </label>
+            <div className="relative">
+              <select
+                id="recordingType"
+                name="recordingType"
+                value={recordingType}
+                onChange={(e) => setRecordingType(e.target.value)}
+                className="py-3 px-4 bg-slate-800/80 border border-white/10 rounded-lg text-white w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base 
+                appearance-none bg-no-repeat cursor-pointer pr-10"
+              >
+                <option value="meeting" className="bg-slate-800 text-white">
+                  Meeting
+                </option>
+                <option value="Q&A" className="bg-slate-800 text-white">
+                  Q&A
+                </option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-white/60">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </div>
+            <p className="mt-2 text-sm text-white/50">
+              Select the type of Loom recording
+            </p>
+          </div>
+
           <div className="flex justify-end">
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg text-white font-medium ${
+              className={`w-full sm:w-auto px-6 py-3 rounded-lg text-white font-medium transition-all duration-200 
+              ${
                 isSubmitting
-                  ? "bg-indigo-600/50 cursor-not-allowed"
-                  : "bg-indigo-600 hover:bg-indigo-700"
-              } transition-colors flex items-center justify-center sm:justify-start`}
+                  ? "bg-indigo-600/60 cursor-not-allowed shadow-none"
+                  : "bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/20"
+              } 
+              focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900
+              flex items-center justify-center gap-2`}
             >
               {isSubmitting ? (
                 <>
-                  <svg
-                    className="animate-spin -ml-1 mr-2 sm:mr-3 h-4 sm:h-5 w-4 sm:w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Processing...
+                  <div className="h-5 w-5 relative">
+                    <div className="animate-ping absolute h-full w-full rounded-full bg-white/80 opacity-75"></div>
+                    <div className="relative rounded-full h-5 w-5 bg-white/40"></div>
+                  </div>
+                  <span>Processing...</span>
                 </>
               ) : (
                 <>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 sm:h-5 w-4 sm:w-5 mr-2"
+                    className="h-5 w-5"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
                     <path
                       fillRule="evenodd"
-                      d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
                       clipRule="evenodd"
                     />
                   </svg>
-                  Submit for Analysis
+                  <span>Submit for Analysis</span>
                 </>
               )}
             </button>

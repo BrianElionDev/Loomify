@@ -99,7 +99,6 @@ export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
             <span>{video.model}</span>
           </div>
         </div>
-
         {video.project && (
           <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
             <div className="flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/70 backdrop-blur-md rounded-full text-[10px] sm:text-xs text-white/90 border border-slate-700/40">
@@ -178,20 +177,54 @@ export default function LoomVideoCard({ video, onClick }: LoomVideoCardProps) {
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-          <div className="text-[10px] sm:text-xs font-medium text-indigo-400/90 flex items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                clipRule="evenodd"
-              />
-            </svg>
-            {new Date(video.date).toLocaleDateString()}
+          <div className="flex items-center gap-1.5">
+            <div className="text-[10px] sm:text-xs font-medium text-indigo-400/90 flex items-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              {new Date(video.date).toLocaleDateString()}
+            </div>
+
+            {video.recording_type && (
+              <div
+                className={`flex items-center text-[10px] sm:text-xs rounded-full px-1.5 py-0.5 ${
+                  video.recording_type === "meeting"
+                    ? "bg-orange-500/20 text-orange-300"
+                    : video.recording_type === "Q&A"
+                    ? "bg-green-500/20 text-green-300"
+                    : "bg-blue-500/20 text-blue-300"
+                }`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  {video.recording_type === "meeting" ? (
+                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                  ) : video.recording_type === "Q&A" ? (
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                      clipRule="evenodd"
+                    />
+                  ) : (
+                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                  )}
+                </svg>
+                {video.recording_type}
+              </div>
+            )}
           </div>
 
           <div className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-indigo-500/10 text-indigo-300">
