@@ -21,6 +21,9 @@ export default function Home() {
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [selectedRecordingType, setSelectedRecordingType] = useState<
+    string | null
+  >(null);
 
   // Get unique projects from videos
   const projects = useMemo(() => {
@@ -36,7 +39,21 @@ export default function Home() {
     return Array.from(projectSet).sort();
   }, [loomData]);
 
-  // Filter videos based on search query and selected project
+  // Get unique recording types from videos
+  const recordingTypes = useMemo(() => {
+    if (!loomData || !Array.isArray(loomData)) return [];
+
+    const recordingTypeSet = new Set<string>();
+    loomData.forEach((video) => {
+      if (video?.recording_type) {
+        recordingTypeSet.add(video.recording_type);
+      }
+    });
+
+    return Array.from(recordingTypeSet).sort();
+  }, [loomData]);
+
+  // Filter videos based on search query, selected project and recording type
   const filteredVideos = useMemo(() => {
     if (!loomData) return [];
 
@@ -47,6 +64,13 @@ export default function Home() {
       filtered = filtered.filter(
         (video) =>
           video?.project?.toLowerCase() === selectedProject.toLowerCase()
+      );
+    }
+
+    // Filter by recording type if one is selected
+    if (selectedRecordingType) {
+      filtered = filtered.filter(
+        (video) => video?.recording_type === selectedRecordingType
       );
     }
 
@@ -64,7 +88,7 @@ export default function Home() {
     }
 
     return filtered;
-  }, [loomData, searchQuery, selectedProject]);
+  }, [loomData, searchQuery, selectedProject, selectedRecordingType]);
 
   const container = {
     hidden: { opacity: 0 },
@@ -298,6 +322,41 @@ export default function Home() {
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none z-10">
                     <Filter className="h-3 w-3 sm:h-4 sm:w-4 text-purple-400" />
+                  </div>
+                </div>
+              )}
+
+              {recordingTypes.length > 0 && (
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                    <Video className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-400" />
+                  </div>
+                  <select
+                    value={selectedRecordingType || ""}
+                    onChange={(e) =>
+                      setSelectedRecordingType(e.target.value || null)
+                    }
+                    className="py-2 sm:py-3 pl-8 sm:pl-10 pr-8 sm:pr-10 bg-indigo-900/40 border-2 border-indigo-500/40 hover:border-indigo-500/60 rounded-lg text-indigo-300 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500/50 appearance-none backdrop-blur-sm shadow-lg w-full sm:w-auto"
+                    style={{ WebkitAppearance: "none" }}
+                  >
+                    <option
+                      value=""
+                      className="bg-slate-800 text-indigo-300 font-medium"
+                    >
+                      All Types
+                    </option>
+                    {recordingTypes.map((type) => (
+                      <option
+                        key={type}
+                        value={type}
+                        className="bg-slate-800 text-indigo-300 font-medium"
+                      >
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none z-10">
+                    <Filter className="h-3 w-3 sm:h-4 sm:w-4 text-indigo-400" />
                   </div>
                 </div>
               )}

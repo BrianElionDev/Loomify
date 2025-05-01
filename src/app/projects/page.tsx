@@ -10,6 +10,7 @@ import { Developer, LoomAnalysis, Task } from "@/types/loom";
 interface ProjectData {
   name: string;
   videos: LoomAnalysis[];
+  recordingTypes: Set<string>;
 }
 
 export default function ProjectsPage() {
@@ -35,6 +36,7 @@ export default function ProjectsPage() {
         projectMap.set(projectName, {
           name: video.project,
           videos: [],
+          recordingTypes: new Set(),
         });
       }
 
@@ -45,11 +47,19 @@ export default function ProjectsPage() {
         video.llm_answer.developers.length > 0
       ) {
         projectMap.get(projectName).videos.push(video);
+
+        // Track recording types
+        if (video.recording_type) {
+          projectMap.get(projectName).recordingTypes.add(video.recording_type);
+        }
       }
     });
 
-    // Convert map to array
-    return Array.from(projectMap.values());
+    // Convert map to array and convert recordingTypes Set to Array
+    return Array.from(projectMap.values()).map((project) => ({
+      ...project,
+      recordingTypes: Array.from(project.recordingTypes),
+    }));
   }, [loomData]);
 
   // Filter projects based on search query
@@ -68,6 +78,7 @@ export default function ProjectsPage() {
     let totalTasks = 0;
     let completedTasks = 0;
     const developers = new Set();
+    const recordingTypeCounts: Record<string, number> = {};
 
     videos.forEach((video: LoomAnalysis) => {
       if (
@@ -75,6 +86,12 @@ export default function ProjectsPage() {
         !Array.isArray(video.llm_answer.developers)
       ) {
         return;
+      }
+
+      // Count recording types
+      if (video.recording_type) {
+        recordingTypeCounts[video.recording_type] =
+          (recordingTypeCounts[video.recording_type] || 0) + 1;
       }
 
       video.llm_answer.developers.forEach((dev: Developer) => {
@@ -96,6 +113,7 @@ export default function ProjectsPage() {
       taskCount: totalTasks,
       completedTaskCount: completedTasks,
       devCount: developers.size,
+      recordingTypeCounts,
       completionPercentage:
         totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
     };
@@ -293,130 +311,89 @@ export default function ProjectsPage() {
                   <motion.div key={project.name} variants={item}>
                     <Link
                       href={`/projects/${encodeURIComponent(project.name)}`}
-                      className="block"
+                      className="block h-full"
                     >
-                      <motion.div
-                        whileHover={{ y: -8, scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="bg-gradient-to-br from-slate-900/70 to-slate-800/50 backdrop-blur-md rounded-xl border border-slate-700/40 overflow-hidden cursor-pointer transition-all shadow-lg hover:shadow-2xl hover:border-indigo-500/30 duration-300"
-                      >
-                        <div className="h-40 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-pink-600/20 flex items-center justify-center relative overflow-hidden">
-                          <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
-                          <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 blur-xl"></div>
-                          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent to-black/30"></div>
-                          <div className="h-20 w-20 rounded-xl bg-gradient-to-br from-indigo-500/30 to-purple-600/30 flex items-center justify-center shadow-lg relative z-10">
-                            <FolderKanban className="h-10 w-10 text-indigo-300" />
-                          </div>
-                          <div className="absolute right-3 top-3 px-2.5 py-1.5 bg-black/40 backdrop-blur-md rounded-full text-xs font-medium text-white/90 flex items-center space-x-1 border border-white/10">
-                            <Video className="h-3 w-3 text-indigo-400 mr-1" />
-                            <span>{stats.videoCount}</span>
-                          </div>
-                          <div className="absolute left-3 top-3 px-2.5 py-1.5 bg-black/40 backdrop-blur-md rounded-full text-xs font-medium flex items-center border border-white/10">
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-indigo-200">
-                              {project.name}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="p-5 space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-xl font-semibold line-clamp-1 bg-gradient-to-r from-white via-white to-indigo-200 text-transparent bg-clip-text">
-                              {project.name}
-                            </h3>
-                            <div className="px-2 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-300">
-                              {stats.completionPercentage}% Done
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-white/5 p-3 rounded-lg border border-white/5 hover:border-indigo-500/20 transition-colors group">
-                              <div className="flex items-center">
-                                <Users className="h-4 w-4 text-indigo-400 mr-2 group-hover:text-indigo-300 transition-colors" />
-                                <div>
-                                  <div className="text-white/90 font-medium text-sm">
-                                    {stats.devCount > 0 ? stats.devCount : "No"}
+                      <div className="p-6 bg-gradient-to-r from-slate-900 to-slate-800/80 rounded-xl border border-slate-700/40 h-full">
+                        <div className="flex flex-col h-full">
+                          <div className="flex items-start justify-between gap-4 mb-6">
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold text-white/90 mb-2 truncate">
+                                {project.name}
+                              </h3>
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                {stats.videoCount > 0 && (
+                                  <div className="inline-flex items-center px-2.5 py-1 bg-indigo-500/10 text-indigo-300 text-xs font-medium rounded">
+                                    <Video className="h-3.5 w-3.5 mr-1" />
+                                    {stats.videoCount}{" "}
+                                    {stats.videoCount === 1
+                                      ? "video"
+                                      : "videos"}
                                   </div>
-                                  <div className="text-white/50 text-xs">
-                                    Developers
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="bg-white/5 p-3 rounded-lg border border-white/5 hover:border-indigo-500/20 transition-colors group">
-                              <div className="flex items-center">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-4 w-4 text-indigo-400 mr-2 group-hover:text-indigo-300 transition-colors"
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
-                                >
-                                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                                <div>
-                                  <div className="text-white/90 font-medium text-sm">
-                                    {stats.taskCount > 0
-                                      ? stats.taskCount
-                                      : "No"}
-                                  </div>
-                                  <div className="text-white/50 text-xs">
-                                    Tasks
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                                )}
 
-                          <div>
-                            <div className="flex justify-between mb-1.5">
-                              <div className="text-white/60 text-xs">
-                                Progress
-                              </div>
-                              <div className="text-indigo-300 text-xs font-medium">
-                                {stats.completedTaskCount}/{stats.taskCount}{" "}
-                                tasks
-                              </div>
-                            </div>
-                            <div className="h-2 bg-slate-700/40 rounded-full w-full overflow-hidden">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{
-                                  width: `${stats.completionPercentage}%`,
-                                }}
-                                transition={{
-                                  duration: 0.8,
-                                  delay: 0.2,
-                                  type: "spring",
-                                  stiffness: 50,
-                                }}
-                                className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-                              />
-                            </div>
-                          </div>
+                                {project.recordingTypes &&
+                                  project.recordingTypes.map((type: string) => (
+                                    <div
+                                      key={type}
+                                      className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded ${
+                                        type === "meeting"
+                                          ? "bg-blue-500/10 text-blue-300"
+                                          : type === "Q&A"
+                                          ? "bg-green-500/10 text-green-300"
+                                          : "bg-purple-500/10 text-purple-300"
+                                      }`}
+                                    >
+                                      {type === "meeting" ? (
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          className="h-3.5 w-3.5 mr-1"
+                                          viewBox="0 0 20 20"
+                                          fill="currentColor"
+                                        >
+                                          <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                                        </svg>
+                                      ) : type === "Q&A" ? (
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          className="h-3.5 w-3.5 mr-1"
+                                          viewBox="0 0 20 20"
+                                          fill="currentColor"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                                            clipRule="evenodd"
+                                          />
+                                        </svg>
+                                      ) : (
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          className="h-3.5 w-3.5 mr-1"
+                                          viewBox="0 0 20 20"
+                                          fill="currentColor"
+                                        >
+                                          <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                                        </svg>
+                                      )}
+                                      {type} (
+                                      {stats.recordingTypeCounts[type] || 0})
+                                    </div>
+                                  ))}
 
-                          <div className="pt-2">
-                            <div className="text-white/70 text-xs flex items-center justify-end hover:text-indigo-300 transition-colors">
-                              <span className="mr-1">View Details</span>
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-3.5 w-3.5"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
+                                {stats.devCount > 0 && (
+                                  <div className="inline-flex items-center px-2.5 py-1 bg-purple-500/10 text-purple-300 text-xs font-medium rounded">
+                                    <Users className="h-3.5 w-3.5 mr-1" />
+                                    {stats.devCount}{" "}
+                                    {stats.devCount === 1
+                                      ? "developer"
+                                      : "developers"}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
                     </Link>
                   </motion.div>
                 );

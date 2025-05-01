@@ -16,13 +16,13 @@ export async function POST(req: NextRequest) {
     // Get the Loom URL from the request body
     const body = await req.json();
     const loomUrl = body.loom_url;
+    const recordingType = body.recording_type || "meeting"; // Default to meeting if not provided
 
-    console.log("Proxying request for Loom URL:", loomUrl);
-    console.log("Request body:", JSON.stringify(body, null, 2));
+    console.log(`Processing: ${recordingType} Loom URL`);
 
     // Validate the loomUrl
     if (!loomUrl || typeof loomUrl !== "string") {
-      console.error("Invalid loom_url provided:", loomUrl);
+      console.error("Error: Invalid loom_url provided");
       return NextResponse.json(
         { error: "Invalid or missing loom_url in request" },
         { status: 400 }
@@ -34,18 +34,14 @@ export async function POST(req: NextRequest) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-      // Prepare request payload
+      // Prepare request payload - ensure we're sending the exact recording_type received
       const requestPayload = {
         loom_url: loomUrl,
+        recording_type: recordingType, // Pass the exact format received from frontend
       };
 
-      console.log(
-        "Sending request to external API with body:",
-        JSON.stringify(requestPayload)
-      );
-
       // Using Next.js API to avoid potential issues with CORS or TLS
-      console.log("Requesting from:", LOOM_API_URL);
+      console.log("Sending request to external API");
 
       const response = await fetch(LOOM_API_URL, {
         method: "POST",
@@ -62,15 +58,8 @@ export async function POST(req: NextRequest) {
 
       clearTimeout(timeoutId);
 
+      // Simplified logging for successful responses
       console.log("External API response status:", response.status);
-      console.log(
-        "External API response headers:",
-        JSON.stringify(
-          Object.fromEntries([...response.headers.entries()]),
-          null,
-          2
-        )
-      );
 
       // Check if the response is ok
       if (!response.ok) {
@@ -82,8 +71,11 @@ export async function POST(req: NextRequest) {
             response.status,
             errorText
           );
-        } catch (textError) {
-          console.error("Could not extract error text:", textError);
+        } catch (error) {
+          console.error(
+            "Could not extract error text:",
+            error instanceof Error ? error.message : "Unknown error"
+          );
           errorText = "Could not extract error details";
         }
 
@@ -97,23 +89,56 @@ export async function POST(req: NextRequest) {
       try {
         const responseText = await response.clone().text();
         console.log(
-          "Response raw text (first 200 chars):",
-          responseText.substring(0, 200)
+          "Response message:",
+          responseText.substring(0, 100).trim() +
+            (responseText.length > 100 ? "..." : "")
         );
 
+        // Check if the response is a non-JSON "background processing" message
+        if (
+          responseText.includes("background and will get back to you") ||
+          responseText.includes("process your request in the background")
+        ) {
+          console.log("Status: Background processing");
+          return NextResponse.json({
+            status: "processing",
+            message:
+              "Your Loom video is being processed in the background. Check back soon for results.",
+          });
+        }
+
         // Now try to parse as JSON
-        const data = JSON.parse(responseText);
-        console.log("Successfully parsed response data");
-        return NextResponse.json(data);
-      } catch (jsonError) {
-        console.error("Error parsing JSON response:", jsonError);
+        try {
+          const data = JSON.parse(responseText);
+          console.log("Status: JSON data received");
+          return NextResponse.json(data);
+        } catch (error) {
+          console.log(
+            "Status: Non-JSON response received",
+            error instanceof Error ? error.message : "Unknown error"
+          );
+          // If we can't parse as JSON but have a text response, return it as a message
+          return NextResponse.json({
+            status: "success",
+            message: responseText.trim(),
+          });
+        }
+      } catch (error) {
+        console.error(
+          "Error: Failed to read response text",
+          error instanceof Error ? error.message : "Unknown error"
+        );
         return NextResponse.json(
-          { error: "Failed to parse response from API" },
+          { error: "Failed to read response from API" },
           { status: 500 }
         );
       }
     } catch (fetchError: unknown) {
-      console.error("Fetch operation failed:", fetchError);
+      console.error(
+        "Error: Fetch operation failed",
+        fetchError instanceof Error ? fetchError.message : "Unknown error"
+      );
+
       const errorMessage =
         fetchError instanceof Error
           ? fetchError.message
@@ -125,7 +150,11 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch (error: unknown) {
-    console.error("API proxy error:", error);
+    console.error(
+      "Error: API proxy error",
+      error instanceof Error ? error.message : "Unknown error"
+    );
+
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
 
