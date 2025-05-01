@@ -67,8 +67,13 @@ export default function DeveloperPage() {
   >("all");
   const [dateFilter, setDateFilter] = useState<string | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [recordingTypeFilter, setRecordingTypeFilter] = useState<string | null>(
+    null
+  );
   const [saving, setSaving] = useState(false);
-  const [groupBy, setGroupBy] = useState<"date" | "project">("date");
+  const [groupBy, setGroupBy] = useState<"date" | "project" | "recording_type">(
+    "date"
+  );
   const [selectedTask, setSelectedTask] = useState<ExtendedTask | null>(null);
   const [taskTextStates, setTaskTextStates] = useState<Record<string, string>>(
     {}
@@ -135,10 +140,11 @@ export default function DeveloperPage() {
     }
   }, [developerTasks]);
 
-  // Get unique projects and dates
-  const { projects, dates } = useMemo(() => {
+  // Get unique projects, dates, and recording types
+  const { projects, dates, recordingTypes } = useMemo(() => {
     const projectSet = new Set<string>();
     const dateSet = new Set<string>();
+    const recordingTypeSet = new Set<string>();
 
     developerTasks.forEach((task) => {
       if (task.project) projectSet.add(task.project);
@@ -146,15 +152,22 @@ export default function DeveloperPage() {
         const date = new Date(task.date);
         dateSet.add(date.toISOString().split("T")[0]); // YYYY-MM-DD format
       }
+
+      // Get the video from loomData to access recording_type
+      const video = loomData?.find((video) => video.id === task.videoId);
+      if (video?.recording_type) {
+        recordingTypeSet.add(video.recording_type);
+      }
     });
 
     return {
       projects: Array.from(projectSet).sort(),
       dates: Array.from(dateSet).sort().reverse(), // Newest first
+      recordingTypes: Array.from(recordingTypeSet).sort(),
     };
-  }, [developerTasks]);
+  }, [developerTasks, loomData]);
 
-  // Filter tasks based on search, status, date, and project
+  // Filter tasks based on search, status, date, project, and recording_type
   const filteredTasks = useMemo(() => {
     if (!developerTasks.length) return [];
 
@@ -172,6 +185,13 @@ export default function DeveloperPage() {
       // Apply project filter
       if (projectFilter && task.project !== projectFilter) return false;
 
+      // Apply recording_type filter
+      if (recordingTypeFilter) {
+        const video = loomData?.find((video) => video.id === task.videoId);
+        if (!video || video.recording_type !== recordingTypeFilter)
+          return false;
+      }
+
       // Apply search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -184,9 +204,17 @@ export default function DeveloperPage() {
 
       return true;
     });
-  }, [developerTasks, searchQuery, statusFilter, dateFilter, projectFilter]);
+  }, [
+    developerTasks,
+    searchQuery,
+    statusFilter,
+    dateFilter,
+    projectFilter,
+    recordingTypeFilter,
+    loomData,
+  ]);
 
-  // Group tasks by date or project
+  // Group tasks by date, project or recording_type
   const groupedTasks = useMemo(() => {
     if (groupBy === "date") {
       const groups = new Map<string, ExtendedTask[]>();
@@ -213,7 +241,7 @@ export default function DeveloperPage() {
       return Array.from(groups.entries())
         .filter(([, tasks]) => tasks.length > 0) // Remove empty dates
         .sort(([dateA], [dateB]) => dateB.localeCompare(dateA));
-    } else {
+    } else if (groupBy === "project") {
       const groups = new Map<string, ExtendedTask[]>();
 
       // Add "No Project" group
@@ -236,8 +264,34 @@ export default function DeveloperPage() {
           if (projectB === "No Project") return -1;
           return projectA.localeCompare(projectB);
         });
+    } else {
+      // Group by recording_type
+      const groups = new Map<string, ExtendedTask[]>();
+
+      // Add "Unspecified" group
+      groups.set("Unspecified", []);
+
+      filteredTasks.forEach((task) => {
+        const video = loomData?.find((video) => video.id === task.videoId);
+        const recordingTypeKey = video?.recording_type || "Unspecified";
+
+        if (!groups.has(recordingTypeKey)) {
+          groups.set(recordingTypeKey, []);
+        }
+        groups.get(recordingTypeKey)?.push(task);
+      });
+
+      // Convert to array and sort alphabetically
+      return Array.from(groups.entries())
+        .filter(([, tasks]) => tasks.length > 0) // Remove empty recording types
+        .sort(([typeA], [typeB]) => {
+          // Keep "Unspecified" at the end
+          if (typeA === "Unspecified") return 1;
+          if (typeB === "Unspecified") return -1;
+          return typeA.localeCompare(typeB);
+        });
     }
-  }, [filteredTasks, groupBy]);
+  }, [filteredTasks, groupBy, loomData]);
 
   // Stats
   const stats = useMemo(() => {
@@ -461,6 +515,17 @@ export default function DeveloperPage() {
           <FolderKanban className="h-3.5 w-3.5" />
           By Project
         </button>
+        <button
+          onClick={() => setGroupBy("recording_type")}
+          className={`px-3 py-1.5 rounded-md text-sm transition-colors flex items-center gap-1.5 ${
+            groupBy === "recording_type"
+              ? "bg-indigo-500/20 text-indigo-300"
+              : "text-white/60 hover:text-white/80"
+          }`}
+        >
+          <VideoIcon className="h-3.5 w-3.5" />
+          By Recording Type
+        </button>
       </motion.div>
 
       {/* Filters */}
@@ -623,6 +688,52 @@ export default function DeveloperPage() {
             </div>
           </div>
         )}
+
+        {groupBy === "recording_type" && (
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+              <VideoIcon className="h-4 w-4 text-indigo-400" />
+            </div>
+            <select
+              value={recordingTypeFilter || ""}
+              onChange={(e) => setRecordingTypeFilter(e.target.value || null)}
+              className="py-2 pl-9 pr-8 bg-indigo-900/40 border-2 border-indigo-500/40 hover:border-indigo-500/60 rounded-lg text-indigo-300 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500/50 appearance-none backdrop-blur-sm shadow-lg w-full sm:w-auto"
+              style={{ WebkitAppearance: "none" }}
+            >
+              <option
+                value=""
+                className="bg-slate-800 text-indigo-300 font-medium"
+              >
+                All Types
+              </option>
+              {recordingTypes.map((type) => (
+                <option
+                  key={type}
+                  value={type}
+                  className="bg-slate-800 text-indigo-300 font-medium"
+                >
+                  {type}
+                </option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none z-10">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 text-indigo-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* Tasks list */}
@@ -691,9 +802,14 @@ export default function DeveloperPage() {
                       <Calendar className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-indigo-400" />
                       {formatDateForDisplay(groupName)}
                     </>
-                  ) : (
+                  ) : groupBy === "project" ? (
                     <>
                       <FolderKanban className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-indigo-400" />
+                      {groupName}
+                    </>
+                  ) : (
+                    <>
+                      <VideoIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-indigo-400" />
                       {groupName}
                     </>
                   )}

@@ -13,6 +13,9 @@ export default function ProjectPage() {
   const params = useParams();
   const { loomData, loading, error } = useLoom();
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [selectedRecordingType, setSelectedRecordingType] = useState<
+    string | null
+  >(null);
   const projectName = decodeURIComponent(params.project as string);
 
   // Filter videos for this project
@@ -25,11 +28,41 @@ export default function ProjectPage() {
     );
   }, [loomData, projectName]);
 
+  // Get unique recording types for this project
+  const recordingTypes = useMemo(() => {
+    if (!projectVideos || !Array.isArray(projectVideos)) return [];
+
+    const recordingTypeSet = new Set<string>();
+    projectVideos.forEach((video) => {
+      if (video?.recording_type) {
+        recordingTypeSet.add(video.recording_type);
+      }
+    });
+
+    return Array.from(recordingTypeSet).sort();
+  }, [projectVideos]);
+
+  // Filter videos by recording type if selected
+  const filteredVideos = useMemo(() => {
+    if (!projectVideos || !Array.isArray(projectVideos)) {
+      return [];
+    }
+
+    if (!selectedRecordingType) {
+      return projectVideos;
+    }
+
+    return projectVideos.filter(
+      (video) => video?.recording_type === selectedRecordingType
+    );
+  }, [projectVideos, selectedRecordingType]);
+
   // Calculate project stats
   const projectStats = useMemo(() => {
     let totalTasks = 0;
     let completedTasks = 0;
     const developers = new Set<string>();
+    const recordingTypeCounts: Record<string, number> = {};
 
     projectVideos.forEach((video) => {
       if (
@@ -38,6 +71,12 @@ export default function ProjectPage() {
         !Array.isArray(video.llm_answer.developers)
       ) {
         return;
+      }
+
+      // Count recording types
+      if (video.recording_type) {
+        recordingTypeCounts[video.recording_type] =
+          (recordingTypeCounts[video.recording_type] || 0) + 1;
       }
 
       video.llm_answer.developers.forEach((dev) => {
@@ -58,6 +97,7 @@ export default function ProjectPage() {
       completedTasks,
       developersCount: developers.size,
       developers: Array.from(developers),
+      recordingTypeCounts,
       completionPercentage:
         totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
     };
@@ -181,6 +221,56 @@ export default function ProjectPage() {
             </div>
           </div>
         </motion.div>
+
+        {/* Recording type filter */}
+        {recordingTypes.length > 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex justify-end mb-4"
+          >
+            <div className="relative w-auto">
+              <select
+                value={selectedRecordingType || ""}
+                onChange={(e) =>
+                  setSelectedRecordingType(e.target.value || null)
+                }
+                className="py-2 px-4 pl-10 pr-10 bg-slate-800/80 border border-slate-700/50 rounded-lg text-white/90 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500/50"
+              >
+                <option value="" className="bg-slate-800 text-white/90">
+                  All Recording Types
+                </option>
+                {recordingTypes.map((type) => (
+                  <option
+                    key={type}
+                    value={type}
+                    className="bg-slate-800 text-white/90"
+                  >
+                    {type} ({projectStats.recordingTypeCounts[type] || 0})
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <Video className="h-4 w-4 text-indigo-400" />
+              </div>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 text-white/60"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -370,71 +460,45 @@ export default function ProjectPage() {
             <h3 className="text-xl font-semibold text-white/90 flex items-center">
               <Video className="h-5 w-5 mr-2 text-indigo-400" />
               Project Videos
+              {selectedRecordingType && (
+                <span className="ml-2 px-2 py-1 text-xs bg-indigo-500/20 text-indigo-300 rounded-md">
+                  Filtered by: {selectedRecordingType}
+                </span>
+              )}
             </h3>
           </motion.div>
 
-          {loading ? (
-            <motion.div
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              variants={container}
-              initial="hidden"
-              animate="show"
-            >
-              {[...Array(6)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  variants={item}
-                  className="bg-slate-800/50 rounded-xl border border-slate-700/40 overflow-hidden shadow-md"
+          {filteredVideos.length === 0 ? (
+            <div className="p-6 text-center bg-slate-800/30 rounded-xl border border-slate-700/40">
+              <div className="h-16 w-16 mx-auto mb-4 bg-indigo-500/10 rounded-full flex items-center justify-center">
+                <Video className="h-8 w-8 text-indigo-400/60" />
+              </div>
+              <h3 className="text-lg font-medium text-white/90 mb-2">
+                No Videos Found
+              </h3>
+              <p className="text-white/60 max-w-md mx-auto">
+                {selectedRecordingType
+                  ? `No ${selectedRecordingType} videos found for this project.`
+                  : "No videos found for this project."}
+              </p>
+              {selectedRecordingType && (
+                <button
+                  onClick={() => setSelectedRecordingType(null)}
+                  className="mt-4 px-4 py-2 bg-indigo-500/10 text-indigo-300 rounded-lg text-sm font-medium hover:bg-indigo-500/20 transition-colors"
                 >
-                  <div className="relative">
-                    <div className="w-full aspect-video bg-gradient-to-r from-slate-700/40 via-slate-700/60 to-slate-700/40 rounded-t-lg animate-pulse overflow-hidden">
-                      <div className="absolute inset-0 bg-shimmer"></div>
-                    </div>
-                    <div className="absolute top-3 left-3">
-                      <div className="h-5 w-20 bg-slate-700/60 rounded-full animate-pulse"></div>
-                    </div>
-                    <div className="absolute bottom-3 left-3">
-                      <div className="h-5 w-16 bg-slate-700/60 rounded-lg animate-pulse"></div>
-                    </div>
-                    <div className="absolute bottom-3 right-3">
-                      <div className="h-5 w-12 bg-slate-700/60 rounded-lg animate-pulse"></div>
-                    </div>
-                  </div>
-                  <div className="p-5 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <div className="h-4 w-24 bg-slate-700/40 rounded animate-pulse"></div>
-                      <div className="h-5 w-16 bg-slate-700/40 rounded-full animate-pulse"></div>
-                    </div>
-                    <div className="h-6 w-3/4 bg-slate-700/40 rounded animate-pulse"></div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex">
-                        <div className="w-7 h-7 rounded-full bg-slate-700/60 animate-pulse mr-1"></div>
-                        <div className="w-7 h-7 rounded-full bg-slate-700/60 animate-pulse -ml-2"></div>
-                        <div className="h-6 w-20 bg-slate-700/40 rounded ml-1 my-auto animate-pulse"></div>
-                      </div>
-                      <div className="h-4 w-16 bg-slate-700/40 rounded animate-pulse"></div>
-                    </div>
-                    <div className="h-2 bg-slate-700/30 rounded-full w-full mt-2 overflow-hidden">
-                      <div className="h-full w-1/3 bg-slate-700/60 rounded-full animate-pulse"></div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
+                  Clear Filter
+                </button>
+              )}
+            </div>
           ) : (
             <motion.div
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
               variants={container}
               initial="hidden"
               animate="show"
             >
-              {projectVideos.map((video) => (
-                <motion.div
-                  key={video.id}
-                  variants={item}
-                  whileHover={{ y: -8 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 15 }}
-                >
+              {filteredVideos.map((video) => (
+                <motion.div key={video.id} variants={item}>
                   <LoomVideoCard
                     video={video}
                     onClick={() => setSelectedVideo(video.id)}
